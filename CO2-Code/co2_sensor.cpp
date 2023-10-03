@@ -17,9 +17,6 @@
 //Includes the Library for the Real Time Clock
 #include <DS3231.h>
 
-//Defines Sea Level Pressure for BME280
-#define SEALEVELPRESSURE_HPA (1013.25)
-
 //Adds Definitions to the SD pin and File info for SD card
 #define SD_SS_PIN 12
 #define FILE_NAME "Test1.txt"
@@ -41,18 +38,10 @@ int second, minute, hour, month, DayMonth, year;
 Adafruit_ADS1115 ads1;
 Adafruit_ADS1115 ads2;
 
-//Creates variables for the BME280s
-Adafruit_BME280 bme1;
-Adafruit_BME280 bme2;
-
 //Setting variables for the ADC results
-int16_t results1;
 int16_t results2;
-int16_t results3;
-int16_t results4;
 float multiplier = 0.125F;
 float CO2_Volt;
-float Battery_Lvl;
 float CO2_PPM;
 float accuracy_modifer;
 
@@ -120,10 +109,6 @@ void setupLogFile() {
   logFile.close();
 }
 
-
-
-
-
 void setup() {
 
   Wire.begin();
@@ -147,8 +132,7 @@ void setup() {
   //Check if ADS1115 ADC is operational at 0x49 address
   if (!ads2.begin(0x49)) {
     Serial.println("Failed to initialize ADS2.");
-    while (1)
-      ;
+    while (1);
   }
 
   //Initialise log file
@@ -160,16 +144,10 @@ void loop() {
 
 
     // Read Oxygen and CO2 results from the Mayfly ADCs
-    results1 = ads1.readADC_Differential_0_1();
     results2 = ads1.readADC_Differential_2_3();
-    // Read battery level and methane voltage from ADS1115
-    results3 = ads2.readADC_SingleEnded(0);
-    results4 = ads2.readADC_SingleEnded(1);
-
-
+  
     //Compute voltage from ADC results
     CO2_Volt = results2 * multiplier / 1000;
-    Battery_Lvl = results3 * multiplier / 1000;
 
     //_______________Algorithm Computation_______________________________________
 
@@ -186,21 +164,11 @@ void loop() {
       CO2_PPM = -999;
     }
 
-    //Compute the battery voltage based on ADS1115 readings of voltage divider
-    float R_load = 9862.939;
-    float R_1 = 99725.277;
-    Battery_Lvl = ((Battery_Lvl * (R_load+ R_1)) / R_load);
-    //Currently no conditions are set to power off the device if battery voltage is to low
-
     // Creates data string from function
     String dataRec = createDataRecord();
 
     //Display Measurements to Serial Monitor
     Serial.println("-----------------------------------------------------------------------------");
-
-    // Serial.print("Methane = ");
-    // Serial.print(Methane_PPM);
-    // Serial.print("PPM, ");
 
 
     Serial.print("CO2 = ");
