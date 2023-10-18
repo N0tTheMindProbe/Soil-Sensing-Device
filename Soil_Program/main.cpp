@@ -24,7 +24,7 @@
 #define SD_SS_PIN 12
 #define FILE_NAME "Test1.txt"
 #define LOGGERNAME "Mayfly Soil Vapor Sensor"
-#define DATA_HEADER "Date,Time,Solenoid Number,Heater State,Water Level Measurement,O2(%),O2 Volt,CO2(PPM),CO2 Volt,CH4(PPM),CH4 Volt,Ambient Temperature (C),Ambient Humidity (%), Ambient Pressure (hPa), Temperature (C), Humidity (%), Pressure (hPa)"
+#define DATA_HEADER "Date,Time,Solenoid Number,CO2(PPM),CO2 Volt"
 
 //Creates Clock Variable for RTC
 DS3231 Clock;
@@ -51,18 +51,81 @@ float multiplier = 0.125F;
 float CO2_Volt;
 float CO2_PPM;
 float accuracy_modifer;
-
-//Creates variables for BME280 results
-
+int active_solpin;
 
 
-int solenoid;
+
+
+
 // Setting Valve pin
 const int pump_pin = 11;
 
 // Mayfly pins connected to control respective solenoids relays.
 const int solenoid_pins[] = {4, 5, 6};
 
+
+void setupLogFile() {
+  //Checks if SD Card is missing
+  if (!SD.begin(SD_SS_PIN)) {
+    Serial.println("Error: SD card failed to initialise or is missing.");
+  }
+
+  //Check if the file already exists
+  bool oldFile = SD.exists(FILE_NAME);
+
+  //Open the file in write mode
+  File logFile = SD.open(FILE_NAME, FILE_WRITE);
+
+  //Add header information if the file did not already exist
+  if (!oldFile) {
+    logFile.println(LOGGERNAME);
+    logFile.println(DATA_HEADER);
+  }
+
+  //Close the file to save it
+  logFile.close();
+}
+
+String createDataRecord() {
+  //Requests data from RTC
+  year = Clock.getYear();
+  hour = Clock.getHour(h24, PM);
+  minute = Clock.getMinute();
+  second = Clock.getSecond();
+  month = Clock.getMonth(Century);
+  DayMonth = Clock.getDate();
+
+  //Create a String type data record in csv format seperated by commas
+  String data = "";
+  data += month;
+  data += "/";
+  data += DayMonth;
+  data += "/";
+  data += "20";
+  data += year;
+  data += ",";
+  data += hour;
+  data += ":";
+  data += minute;
+  data += ",";
+  data += active_solpin;
+  data += ",";
+  data += CO2_PPM;
+  data += ",";
+  data += CO2_Volt;
+  return data;
+}
+
+void logData(String rec) {
+  //Re-open the file
+  File logFile = SD.open(FILE_NAME, FILE_WRITE);
+
+  //Write the CSV data
+  logFile.println(rec);
+
+  //Close the file to save it
+  logFile.close();
+}
 
 
 
@@ -101,17 +164,18 @@ void setup() {
   //Begins serial communication with 9600 Baud
   Serial.begin(9600);
 
+  setupLogFile();
+
+  
+
 }
 
 void loop() {
-  results2 = ads1.readADC_Differential_2_3();
 
-  CO2_Volt = results2 * multiplier / 1000;
-  float CO2_Amp = CO2_Volt/250 * 1000;
-  CO2_PPM = 312.5 * CO2_Amp - 1250;
 
-  const int flush_time = 6000;
-  const int measurement_time = 10000;
+
+  const int flush_time = 30000;
+  const int measurement_time = 30000;
   
 
   //___________Valve Control____________________________//
@@ -119,51 +183,70 @@ void loop() {
 //for loop opens a specified solenoid, extracts gas, takes measurements, and loops to next solenoid
 
   for (int n = 0; n < 3; n++) {
-    int active_solpin = solenoid_pins[n];
-    
 
+    //voltage difference across AA2 and AA3 from CO2 sensor
+    results2 = ads1.readADC_Differential_2_3();
+
+//converts voltage value to ppm
+    CO2_Volt = results2 * multiplier / 1000;
+    float CO2_Amp = CO2_Volt/250 * 1000;
+    CO2_PPM = 312.5 * CO2_Amp - 1250;
+
+    
+    active_solpin = solenoid_pins[n];
+    hour = Clock.getHour(h24, PM);
+    minute = Clock.getMinute();
+    second = Clock.getSecond();
+    
     //add a list of solenoid pin numbers and go through them to activate solenoid!
 
     //Careful now! If pin eight is used for a solenoid it triggers the relay sporadically if mayfly is restarted
 
     //Turn specified solenoid on for delay(seconds)
     digitalWrite(active_solpin, HIGH);
-    delay(1000);
      
 
     digitalWrite(pump_pin, HIGH);
     delay(flush_time);
+  
 
-    delay(10000);
+    digitalWrite(pump_pin, LOW);
+    delay(measurement_time);
+    Serial.print(hour);
+    Serial.print(':');
+    Serial.print(minute);
+    Serial.print(':');
+    Serial.print(second);
+    Serial.print(' ');
+
     Serial.print("Solenoid:");
     Serial.print(active_solpin);
 
     Serial.print(" CO2 = ");
     Serial.print(CO2_PPM);
     Serial.println("PPM, ");
-
-    digitalWrite(pump_pin, LOW);
-    delay(measurement_time);
+    
 
     digitalWrite(active_solpin, LOW);
 
+    String dataRec = createDataRecord();
 
-    // Read Oxygen and CO2 results from the Mayfly ADCs
- 
+    logData(dataRec);
+
+
+   
+  
+
+
+
+
+
 
   
-    //Compute voltage from ADC results
+    
+  }
   
-
-
-
-
-
-  
-    //_______________Algorithm Computation_______________________________________
-
-
-    //End Barrier for serial monitor
+}
 
 
     delay(1000);
