@@ -233,22 +233,5 @@ void loop() {
 
     logData(dataRec);
 
-
-   
-  
-
-
-
-
-
-
-  
-    
-  }
-  
-}
-
-
-    delay(1000);
   }
 }
