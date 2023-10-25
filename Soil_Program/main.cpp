@@ -9,16 +9,13 @@
 
 //Includes the libraries for the BME280 sensor
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+//#include <Adafruit_BME280.h>
 
 //Includes the library for the SD card
 #include <SD.h>
 
 //Includes the Library for the Real Time Clock
 #include <DS3231.h>
-
-//Defines Sea Level Pressure for BME280
-#define SEALEVELPRESSURE_HPA (1013.25)
 
 //Adds Definitions to the SD pin and File info for SD card
 #define SD_SS_PIN 12
@@ -42,20 +39,16 @@ Adafruit_ADS1115 ads1;
 Adafruit_ADS1115 ads2;
 
 //Creates variables for the BME280s
-Adafruit_BME280 bme1;
-Adafruit_BME280 bme2;
+//Adafruit_BME280 bme1;
+//Adafruit_BME280 bme2;
 
 //Setting variables for the ADC results
 int16_t results2;
-float multiplier = 0.125F;
+
 float CO2_Volt;
 float CO2_PPM;
 float accuracy_modifer;
 int active_solpin;
-
-
-
-
 
 // Setting Valve pin
 const int pump_pin = 11;
@@ -128,10 +121,11 @@ void logData(String rec) {
 }
 
 
-
 void setup() {
 
   Wire.begin();
+    //Begins serial communication with 9600 Baud
+  Serial.begin(9600);
 
   // Set OUTPUT Pins on Mayfly Microcontroller
   pinMode(pump_pin, OUTPUT);
@@ -161,8 +155,7 @@ void setup() {
       ;
   }
   
-  //Begins serial communication with 9600 Baud
-  Serial.begin(9600);
+
 
   setupLogFile();
 
@@ -172,11 +165,8 @@ void setup() {
 
 void loop() {
 
-
-
-  const int flush_time = 30000;
-  const int measurement_time = 30000;
-  
+  const int FLUSH_TIME = 30000;
+  const int MEASUREMENT_TIME = 30000; 
 
   //___________Valve Control____________________________//
   
@@ -187,8 +177,8 @@ void loop() {
     //voltage difference across AA2 and AA3 from CO2 sensor
     results2 = ads1.readADC_Differential_2_3();
 
-//converts voltage value to ppm
-    CO2_Volt = results2 * multiplier / 1000;
+    //converts voltage value to ppm
+    CO2_Volt = ads1.computeVolts(results2);
     float CO2_Amp = CO2_Volt/250 * 1000;
     CO2_PPM = 312.5 * CO2_Amp - 1250;
 
@@ -207,11 +197,11 @@ void loop() {
      
 
     digitalWrite(pump_pin, HIGH);
-    delay(flush_time);
+    delay(FLUSH_TIME);
   
 
     digitalWrite(pump_pin, LOW);
-    delay(measurement_time);
+    delay(MEASUREMENT_TIME);
     Serial.print(hour);
     Serial.print(':');
     Serial.print(minute);
@@ -224,7 +214,7 @@ void loop() {
 
     Serial.print(" CO2 = ");
     Serial.print(CO2_PPM);
-    Serial.println("PPM, ");
+    Serial.println("PPM ");
     
 
     digitalWrite(active_solpin, LOW);
@@ -233,5 +223,7 @@ void loop() {
 
     logData(dataRec);
 
+    
   }
+  
 }
