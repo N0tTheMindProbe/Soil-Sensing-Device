@@ -1,0 +1,11 @@
+# These files get ignored by git
+
+# Operating System files
+Thumbs.db
+.DS_Store
+
+# Visual Studio Code settings
+.vscode
+
+# PlatformIO environments and settings
+.pio
