@@ -140,18 +140,22 @@ MaximDS3231 ds3231(1);
 /** End [ds3231] */
 
 
-// ==========================================================================
-//  AOSong AM2315 Digital Humidity and Temperature Sensor
-// ==========================================================================
-/** Start [ao_song_am2315] */
-#include <sensors/AOSongAM2315.h>
+  // ==========================================================================
+  //    Maxim DS18 One Wire Temperature Sensor
+  // ==========================================================================
+  #include <sensors/MaximDS18.h>
 
-const int8_t I2CPower = sensorPowerPin;  // Power pin (-1 if unconnected)
+  // OneWire Address [array of 8 hex characters]
+  // If only using a single sensor on the OneWire bus, you may omit the address
+  // DeviceAddress OneWireAddress1 = {0x28, 0xFF, 0xBD, 0xBA, 0x81, 0x16, 0x03, 0x0C};
+  const int8_t OneWirePower = sensorPowerPin;  // Pin to switch power on and off (-1 if unconnected)
+  const int8_t OneWireBus = 11;  // Pin attached to the OneWire Bus (-1 if unconnected) (D24 = A0)
 
-// Create and return the AOSong AM2315 sensor object
-AOSongAM2315 am2315(I2CPower);
-/** End [ao_song_am2315] */
+  // Create a Maxim DS18 sensor objects (use this form for a known address)
+  // MaximDS18 ds18(OneWireAddress1, OneWirePower, OneWireBus);
 
+  // Create a Maxim DS18 sensor object (use this form for a single sensor on bus with an unknown address)
+  MaximDS18 ds18(OneWirePower, OneWireBus);
 
 // ==========================================================================
 //  Bosch BME280 Environmental Sensor
@@ -159,7 +163,7 @@ AOSongAM2315 am2315(I2CPower);
 /** Start [bme280] */
 #include <sensors/BoschBME280.h>
 
-//const int8_t I2CPower    = sensorPowerPin;  // Power pin (-1 if unconnected)
+const int8_t I2CPower    = sensorPowerPin;  // Power pin (-1 if unconnected)
 uint8_t      BMEi2c_addr = 0x76;
 // The BME280 can be addressed either as 0x77 (Adafruit default) or 0x76 (Grove
 // default) Either can be physically mofidied for the other address
@@ -169,18 +173,23 @@ BoschBME280 bme280(I2CPower, BMEi2c_addr);
 /** End [bme280] */
 
 
+
 // ==========================================================================
 //  Creating the Variable Array[s] and Filling with Variable Objects
 // ==========================================================================
 /** Start [variable_arrays] */
 // The variables to record at 1 minute intervals
-Variable* variableList_at10cm[] = {new AOSongAM2315_Humidity(&am2315),
-                                   new AOSongAM2315_Temp(&am2315),
+Variable* variableList_at10cm[] = {
+    
+                                    new MaximDS18_Temp(&ds18),
+                                    new MaximDS3231_Temp(&ds3231),
 
                                     new BoschBME280_Temp(&bme280),
                                     new BoschBME280_Humidity(&bme280),
                                     new BoschBME280_Pressure(&bme280),
-                                    new BoschBME280_Altitude(&bme280)};
+                                    new BoschBME280_Altitude(&bme280),
+                                    new ProcessorStats_Battery(&mcuBoard),
+                                    new ProcessorStats_FreeRam(&mcuBoard)};
 // Count up the number of pointers in the 1-minute array
 int variableCount10cm = sizeof(variableList_at10cm) /
     sizeof(variableList_at10cm[0]);
@@ -188,18 +197,20 @@ int variableCount10cm = sizeof(variableList_at10cm) /
 VariableArray array10cm;
 
 // The variables to record at 5 minute intervals
-Variable* variableList_at20cm[] = {new MaximDS3231_Temp(&ds3231),
-                                   new ProcessorStats_Battery(&mcuBoard),
-                                   new ProcessorStats_FreeRam(&mcuBoard)};
+Variable* variableList_at20cm[] = {//new MaximDS3231_Temp(&ds3231),
+                                  // new ProcessorStats_Battery(&mcuBoard),
+                                  // new ProcessorStats_FreeRam(&mcuBoard)
+                                  };
 // Count up the number of pointers in the 5-minute array
 int variableCount20cm = sizeof(variableList_at20cm) /
     sizeof(variableList_at20cm[0]);
 // Create the 5-minute VariableArray object
 VariableArray array20cm;
 
-Variable* variableList_at50cm[] = {new MaximDS3231_Temp(&ds3231),
-                                   new ProcessorStats_Battery(&mcuBoard),
-                                   new ProcessorStats_FreeRam(&mcuBoard)};
+Variable* variableList_at50cm[] = {new MaximDS3231_Temp(&ds3231)
+                                  // new ProcessorStats_Battery(&mcuBoard),
+                                  // new ProcessorStats_FreeRam(&mcuBoard)
+                                  };
 // Count up the number of pointers in the 5-minute array
 int variableCount50cm = sizeof(variableList_at50cm) /
     sizeof(variableList_at50cm[0]);
@@ -307,11 +318,11 @@ void setup() {
 
     // Begin the variable array[s], logger[s], and publisher[s]
     array10cm.begin(variableCount10cm, variableList_at10cm);
-    array20cm.begin(variableCount20cm, variableList_at20cm);
-    array50cm.begin(variableCount50cm, variableList_at50cm);
-    logger10cm.begin(LoggerID, 60, &array10cm);
-    logger20cm.begin(LoggerID, 60, &array20cm);
-    logger50cm.begin(LoggerID, 60, &array50cm);
+    array20cm.begin(variableCount10cm, variableList_at10cm);
+    array50cm.begin(variableCount10cm, variableList_at10cm);
+    logger10cm.begin(LoggerID, 1, &array10cm);
+    logger20cm.begin(LoggerID, 1, &array20cm);
+    logger50cm.begin(LoggerID, 1, &array50cm);
     logger10cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
                              greenLED);
     logger20cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
@@ -404,7 +415,7 @@ void loop() {
         array10cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(4);
+        flushsystem(0);
        
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
@@ -450,7 +461,7 @@ void loop() {
         array20cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(5);
+        flushsystem(1);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
@@ -483,7 +494,7 @@ void loop() {
     // checkMarkedInterval() function.
     if (logger50cm.checkMarkedInterval()) {
         // Print a line to show new reading
-        Serial.println(F("--------------------->20<---------------------"));
+        Serial.println(F("--------------------->50<---------------------"));
         // Turn on the LED to show we're taking a reading
         digitalWrite(redLED, HIGH);
 
@@ -497,7 +508,7 @@ void loop() {
         array50cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(6);
+        flushsystem(2);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
@@ -521,7 +532,7 @@ void loop() {
         // Turn off the LED
         digitalWrite(redLED, LOW);
         // Print a line to show reading ended
-        Serial.println(F("--------------------<20>---------------------\n"));
+        Serial.println(F("--------------------<50>---------------------\n"));
     }
     // Once a day, at noon, sync the clock
     if (Logger::markedLocalEpochTime % 86400 == 43200) {
