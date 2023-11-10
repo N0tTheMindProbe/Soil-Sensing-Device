@@ -12,26 +12,40 @@ and converts the value into parts per million (ppm)
 
 
 // Set delay between sensor readings (in ms)
-const unsigned long delayValue = 5000;
+const unsigned long delayValue = 1000;
 
 // Construct the CO2 sensor instance
 AlphasenseCO2 co2_sensor;
 
 
+// ==========================================================================
+//  Arduino Setup Function
+// ==========================================================================
 void setup() {
     // Begin serial communication at 9600 Baud
     Serial.begin(9600);
 
     co2_sensor.begin();
 
+    // Print headers for output table
+    Serial.print("Time(ms)  ");
+    Serial.println("CO2(ppm)");
+
 }
 
+// ==========================================================================
+//  Arduino Loop Function
+// ==========================================================================
 void loop() {
 
     // Get the CO2 concentration in ppm
     float CO2PPM = co2_sensor.getCO2PPM();
-    Serial.print(CO2PPM);
-    Serial.println("ppm");
+    
+    // Print new line to table of time since sketch began
+    // and measured values, to help determine warmup and stabilization times
+    Serial.print(millis());
+    Serial.print("     ");
+    Serial.println(CO2PPM);
 
     // Wait for the next measurement
     delay(delayValue);
