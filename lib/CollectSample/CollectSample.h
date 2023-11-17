@@ -9,13 +9,13 @@ class CollectSample {
 public:
     
     void getSample(uint8_t pin_number);
+    void begin();
 
 private:
-    const uint8_t pumpPin;
-    const uint8_t* solenoidPins;
-    uint8_t solenoidPinCount;
-    uint32_t flushTime;
-    uint32_t measurementTime;
+    const int solenoidPins[3] = {4,5,6};
+    const int pumpPin = 7;
+    int flushTime = 6000;
+    int measurementTime = 6000;
 };
 
 #endif

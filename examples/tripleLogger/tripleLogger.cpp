@@ -173,14 +173,26 @@ BoschBME280 bme280(I2CPower, BMEi2c_addr);
 /** End [bme280] */
 
 
+// ==========================================================================
+//  Solenoid/Pump Gas Collector Sequence
+// ==========================================================================
+
+#include <CollectSample.h>
+
+CollectSample collector;
+
+
+
+
+
 
 // ==========================================================================
 //  Creating the Variable Array[s] and Filling with Variable Objects
 // ==========================================================================
 /** Start [variable_arrays] */
 // The variables to record at 1 minute intervals
-Variable* variableList_at10cm[] = {
-    
+Variable* variableList_gasMeasurement[] = {
+                                    
                                     new MaximDS18_Temp(&ds18),
                                     new MaximDS3231_Temp(&ds3231),
 
@@ -191,8 +203,8 @@ Variable* variableList_at10cm[] = {
                                     new ProcessorStats_Battery(&mcuBoard),
                                     new ProcessorStats_FreeRam(&mcuBoard)};
 // Count up the number of pointers in the 1-minute array
-int variableCount10cm = sizeof(variableList_at10cm) /
-    sizeof(variableList_at10cm[0]);
+int variableCountGasMeasurement = sizeof(variableList_gasMeasurement) /
+    sizeof(variableList_gasMeasurement[0]);
 // Create the 1-minute VariableArray object
 VariableArray array10cm;
 
@@ -251,6 +263,7 @@ void greenredflash(uint8_t numFlash = 4, uint8_t rate = 75) {
 }
 
 
+/*
 void flushsystem(uint8_t pin_number){
     digitalWrite(solenoid_pins[pin_number], HIGH);
     delay(1000);
@@ -262,6 +275,7 @@ void flushsystem(uint8_t pin_number){
 
 
 }
+*/
 /** End [working_functions] */
 
 
@@ -295,6 +309,7 @@ void setup() {
     pinMode(redLED, OUTPUT);
     digitalWrite(redLED, LOW);
 
+    /*
      // Set OUTPUT Pins on Mayfly Microcontroller
     pinMode(pump_pin, OUTPUT);
 
@@ -307,6 +322,9 @@ void setup() {
     for(int pin = 0; pin < 3; pin++){
         digitalWrite(solenoid_pins[pin], LOW);
     }
+    */
+
+    collector.begin();
     // Blink the LEDs to show the board is on and starting up
     greenredflash();
 
@@ -317,9 +335,9 @@ void setup() {
     Logger::setRTCTimeZone(0);
 
     // Begin the variable array[s], logger[s], and publisher[s]
-    array10cm.begin(variableCount10cm, variableList_at10cm);
-    array20cm.begin(variableCount10cm, variableList_at10cm);
-    array50cm.begin(variableCount10cm, variableList_at10cm);
+    array10cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
+    array20cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
+    array50cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
     logger10cm.begin(LoggerID, 1, &array10cm);
     logger20cm.begin(LoggerID, 1, &array20cm);
     logger50cm.begin(LoggerID, 1, &array50cm);
@@ -415,7 +433,7 @@ void loop() {
         array10cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(0);
+        collector.getSample(0);
        
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
@@ -461,7 +479,7 @@ void loop() {
         array20cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(1);
+        collector.getSample(1);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
@@ -508,7 +526,7 @@ void loop() {
         array50cm.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
-        flushsystem(2);
+        collector.getSample(2);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
@@ -528,7 +546,7 @@ void loop() {
         logger50cm.logToSD();
         logger50cm.turnOffSDcard(true);
         logger10cm.watchDogTimer.resetWatchDog();
-
+        
         // Turn off the LED
         digitalWrite(redLED, LOW);
         // Print a line to show reading ended
