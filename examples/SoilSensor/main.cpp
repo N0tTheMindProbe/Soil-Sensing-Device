@@ -12,10 +12,10 @@
 #include <Adafruit_BME280.h>
 
 //Includes the library for the SD card
-#include <SD.h>
+#include <SdFat.h>
 
 //Includes the Library for the Real Time Clock
-#include <DS3231.h>
+#include <sodaq_DS3231.h>
 
 //Defines Sea Level Pressure for BME280
 #define SEALEVELPRESSURE_HPA (1013.25)
@@ -27,7 +27,7 @@
 #define DATA_HEADER "Date,Time,Solenoid Number,Heater State,Water Level Measurement,O2(%),O2 Volt,CO2(PPM),CO2 Volt,CH4(PPM),CH4 Volt,Ambient Temperature (C),Ambient Humidity (%), Ambient Pressure (hPa), Temperature (C), Humidity (%), Pressure (hPa)"
 
 //Creates Clock Variable for RTC
-DS3231 Clock;
+Sodaq_DS3231 Clock;
 
 //Sets RTC Parameters
 bool h24;

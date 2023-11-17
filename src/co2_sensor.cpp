@@ -43,5 +43,6 @@ float AlphasenseCO2::getCO2PPM(void) {
     // Convert current to ppm (using a formula recommended by the sensor manufacturer)
     float CO2PPM = 312.5 * CO2Current - 1250;
 
+
     return CO2PPM;
 }
