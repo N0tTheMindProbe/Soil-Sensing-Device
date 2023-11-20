@@ -165,8 +165,23 @@ void setup() {
 
 void loop() {
 
+
+  
+
+  //delay between the solenoid opening and the pump turning on
+  const int DELAY_BETWEEN_SOLENOID_OPEN_AND_PUMP_ON = 0;
+
+  //the amount of time the pump stays on for
   const int FLUSH_TIME = 5000;
+
+  //after the pump turns off: the amount of wait time before the sensor takes a reading
   const int MEASUREMENT_TIME = 5000; 
+
+// the amount of time between the sensor taking a reading and the solenoid closing
+  const int DELAY_BEFORE_SOLENOID_CLOSE = 0;
+
+  //delay between closing the last used solenoid and opening the next one
+  const int DELAY_BETWEEN_READINGS = 1000;
 
   //___________Valve Control____________________________//
   
@@ -188,20 +203,21 @@ void loop() {
     minute = Clock.getMinute();
     second = Clock.getSecond();
     
-    //add a list of solenoid pin numbers and go through them to activate solenoid!
-
-    //Careful now! If pin eight is used for a solenoid it triggers the relay sporadically if mayfly is restarted
+   
 
     //Turn specified solenoid on for delay(seconds)
     digitalWrite(active_solpin, LOW);
-     
+
+    delay(DELAY_BETWEEN_SOLENOID_OPEN_AND_PUMP_ON);     
 
     digitalWrite(pump_pin, LOW);
+
     delay(FLUSH_TIME);
   
-
     digitalWrite(pump_pin, HIGH);
+
     delay(MEASUREMENT_TIME);
+
     Serial.print(hour);
     Serial.print(':');
     Serial.print(minute);
@@ -215,6 +231,8 @@ void loop() {
     Serial.print(" CO2 = ");
     Serial.print(CO2_PPM);
     Serial.println("PPM ");
+
+    delay(DELAY_BEFORE_SOLENOID_CLOSE);
     
 
     digitalWrite(active_solpin, HIGH);
@@ -223,7 +241,7 @@ void loop() {
 
     logData(dataRec);
 
-    delay(1000);
+    delay(DELAY_BETWEEN_READINGS);
 
     
   }
