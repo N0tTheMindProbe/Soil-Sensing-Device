@@ -8,7 +8,7 @@ and converts the value into parts per million (ppm)
 
 // Include libraries for the Arduino and I2C
 #include <Arduino.h>
-#include <AlphasenseIRCA1_CO2.h>
+#include <sensors/AlphasenseIRCA1_CO2.h>
 
 
 // Set delay between sensor readings (in ms)
