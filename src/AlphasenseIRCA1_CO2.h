@@ -19,7 +19,7 @@
 #include <SPI.h>
 
 /// The assumed address of the ADS1115, 1001 000 (ADDR = GND)
-#define ADS1115_ADDRESS 0x48
+#define ADS1115_ADDRESS (0x48)
 
 
 // Class for Alphasense IRC-A1 CO2 sensor

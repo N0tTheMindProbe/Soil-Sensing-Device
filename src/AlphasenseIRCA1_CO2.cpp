@@ -19,7 +19,7 @@ bool AlphasenseCO2::begin() {
 
     // Check if the ADC is operational
     Serial.print("Checking ADC... ");
-    if (!ads.begin(ADS1115_ADDRESS)) {
+    if (!ads.begin()) {
         Serial.println("Failed to initialize ADS.");
         return false;
     }
