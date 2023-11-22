@@ -32,10 +32,10 @@ bool Alphasense_IRC_A1::begin() {
 // Function to convert digital value from sensor ADC to CO2 reading in ppm
 float Alphasense_IRC_A1::getCO2PPM(void) {
     // Measure the voltage difference across two pins from the CO2 sensor
-    int16_t results = ads.readADC_Differential_2_3();
+    int16_t counts = ads.readADC_Differential_2_3();
 
-    // Convert digital CO2 value to voltage (V)
-    float CO2Voltage = ads.computeVolts(results);
+    // Convert ADC counts value to voltage (V)
+    float CO2Voltage = ads.computeVolts(counts);
 
     // Convert voltage to current (mA) - assuming a 250 Ohm resistor is in series
     float CO2Current = (CO2Voltage / 250) * 1000;

@@ -1,7 +1,7 @@
 /**
  * AlphasenseIRCA1_CO2.h
  * 
- * Reads the voltage input from the Alphasense IRC-A1 CO2 sensor  
+ * Reads the voltage input from the Alphasense IRC-A1 Carbon Dioxide (CO2) sensor  
  * and converts the value into parts per million (ppm)
  * 
  * Info: https://www.alphasense.com/products/ndir-safety/
