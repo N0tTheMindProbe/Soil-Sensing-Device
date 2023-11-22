@@ -3,6 +3,7 @@
 # Operating System files
 Thumbs.db
 .DS_Store
+~$*
 
 # Visual Studio Code settings
 .vscode
