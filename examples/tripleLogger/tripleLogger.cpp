@@ -177,7 +177,7 @@ BoschBME280 bme280(I2CPower, BMEi2c_addr);
 //  Solenoid/Pump Gas Collector Sequence
 // ==========================================================================
 
-#include <CollectSample.h>
+#include "CollectSample.h"
 
 CollectSample collector;
 

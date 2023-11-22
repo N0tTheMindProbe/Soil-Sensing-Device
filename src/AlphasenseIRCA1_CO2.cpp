@@ -1,8 +1,8 @@
 /**
- * co2_sensor.cpp
+ * AlphasenseIRCA1_CO2.cpp
  */
 
-#include "co2_sensor.h"
+#include "AlphasenseIRCA1_CO2.h"
 
 
 //----------------------------------------------------------------------------
@@ -10,7 +10,7 @@
 //----------------------------------------------------------------------------
 
 // Sets up functions
-bool AlphasenseCO2::begin() {
+bool Alphasense_IRC_A1::begin() {
     Serial.println("Initializing Alphasense IRC-A1 CO2 sensor");
 
     // Set the gain for the ADC
@@ -30,7 +30,7 @@ bool AlphasenseCO2::begin() {
 
 
 // Function to convert digital value from sensor ADC to CO2 reading in ppm
-float AlphasenseCO2::getCO2PPM(void) {
+float Alphasense_IRC_A1::getCO2PPM(void) {
     // Measure the voltage difference across two pins from the CO2 sensor
     int16_t results = ads.readADC_Differential_2_3();
 

@@ -1,17 +1,19 @@
 /**
- * co2_sensor.h
+ * AlphasenseIRCA1_CO2.h
  * 
  * Reads the voltage input from the Alphasense IRC-A1 CO2 sensor  
  * and converts the value into parts per million (ppm)
  * 
  * Info: https://www.alphasense.com/products/ndir-safety/
  * Spec: https://www.alphasense.com/wp-content/uploads/2018/04/IRC-A1.pdf
+ *       https://www.alphasense.com/wp-content/uploads/2017/09/NDIR-Transmitter.pdf
  *       https://www.alphasense.com/wp-content/uploads/2022/10/AAN_202-04_App-Note_V0.pdf
+ *       https://www.alphasense.com/wp-content/uploads/2022/10/AAN_201-06_App-Note_V0.pdf
  */
 
 // Header Guards
-#ifndef CO2_SENSOR_H_
-#define CO2_SENSOR_H_
+#ifndef ALPHASENSEIRCA1_CO2_H_
+#define ALPHASENSEIRCA1_CO2_H_
 
 // Included Dependencies
 #include <Arduino.h>
@@ -23,14 +25,16 @@
 
 
 // Class for Alphasense IRC-A1 CO2 sensor
-class AlphasenseCO2 {
+class Alphasense_IRC_A1 {
     
   public:
 
-    // Sets up functions
+    // This function sets up the communication to the ADC.
+    // It should be run during the arduino "setup" function.
     bool begin(void);
 
-    // Function to convert digital value from sensor ADC to CO2 reading in ppm
+    // This gets values back from the sensor via the ADC.
+    // It converts voltage values from sensor ADC to CO2 in ppm
     float getCO2PPM(void);
 
   private:
