@@ -55,7 +55,7 @@ const char* FileName10cm = "Logger_10cmDepth.csv";
 const char* FileName20cm = "Logger_20cmDepth.csv";
 const char* FileName50cm = "Logger_50cmDepth.csv";
 // Your logger's timezone.
-const int8_t timeZone = -5;  // Eastern Standard Time
+const int8_t timeZone = -6;  // Eastern Standard Time
 // NOTE:  Daylight savings time will not be applied!  Please use standard time!
 
 // Set the input and output pins for the logger
@@ -73,14 +73,7 @@ const int8_t sdCardSSPin    = 12;  // SD card chip select/slave select pin
 const int8_t sensorPowerPin = 22;  // MCU pin controlling main sensor power
 /** End [logging_options] */
 
-const int FLUSH_TIME = 10000;
-const int MEASUREMENT_TIME = 3000;
 
-// Setting Valve pin
-const int pump_pin = 7;
-
-// Mayfly pins connected to control respective solenoids relays.
-const int solenoid_pins[] = {4, 5, 6};
 
 
 
@@ -179,7 +172,42 @@ BoschBME280 bme280(I2CPower, BMEi2c_addr);
 
 #include "CollectSample.h"
 
+const int FLUSH_TIME = 10000;
+const int MEASUREMENT_TIME = 3000;
+
+// Setting Valve pin
+const int pump_pin = 7;
+
+// Mayfly pins connected to control respective solenoids relays.
+const int solenoid_pins[] = {4, 5, 6};
+
 CollectSample collector;
+
+
+// ==========================================================================
+//  Alphasense IRC-A1 Nondispersive Infrared (NDIR) Carbon Dioxide (CO2) sensor
+// ==========================================================================
+/** Start [alphasense_co2] */
+#include <sensors/AlphasenseCO2.h>
+
+// NOTE: Use -1 for any pins that don't apply or aren't being used.
+const int8_t AlphasenseCO2Power    = sensorPowerPin;  // Power pin
+const uint8_t AlphasenseCO2ADSi2c_addr = 0x48;  // The I2C address of the ADS1115 ADC
+const uint8_t AlphasenseCO2NumberReadings = 28;  // The number of readings to average
+
+
+// Create an Atlas Scientific CO2 sensor object
+// AtlasScientificCO2 atlasCO2(AlphasenseCO2Power, AlphasenseCO2ADSi2c_addr);
+AlphasenseCO2 alphasenseCO2(AlphasenseCO2Power, AlphasenseCO2ADSi2c_addr,
+                            AlphasenseCO2NumberReadings);
+
+// Create concentration and temperature variable pointers for the EZO-CO2
+Variable* alphasenseCO2CO2 = new AlphasenseCO2_CO2(
+    &alphasenseCO2, "12345678-abcd-1234-ef00-1234567890ab");
+Variable* alphasenseCO2voltage = new AlphasenseCO2_Voltage(
+    &alphasenseCO2, "12345678-abcd-1234-ef00-1234567890ab");
+/** End [alphasense_co2] */
+
 
 
 
@@ -190,9 +218,19 @@ CollectSample collector;
 //  Creating the Variable Array[s] and Filling with Variable Objects
 // ==========================================================================
 /** Start [variable_arrays] */
-// The variables to record at 1 minute intervals
+// The variables to record gas measurements from the soil
 Variable* variableList_gasMeasurement[] = {
-                                    
+                                    new AlphasenseCO2_CO2(&alphasenseCO2),
+                                    new AlphasenseCO2_Voltage(&alphasenseCO2)
+                                    };
+// Count up the number of pointers in the gas measurement array
+int variableCountGasMeasurement = sizeof(variableList_gasMeasurement) /
+    sizeof(variableList_gasMeasurement[0]);
+// Create the gas measruement VariableArray object
+VariableArray arrayGasMeasurement;
+
+// The variables to record temperature (and humidity and pressure) readings from the air
+Variable* variableList_temp[] = {
                                     new MaximDS18_Temp(&ds18),
                                     new MaximDS3231_Temp(&ds3231),
 
@@ -200,34 +238,25 @@ Variable* variableList_gasMeasurement[] = {
                                     new BoschBME280_Humidity(&bme280),
                                     new BoschBME280_Pressure(&bme280),
                                     new BoschBME280_Altitude(&bme280),
+
                                     new ProcessorStats_Battery(&mcuBoard),
-                                    new ProcessorStats_FreeRam(&mcuBoard)};
-// Count up the number of pointers in the 1-minute array
-int variableCountGasMeasurement = sizeof(variableList_gasMeasurement) /
-    sizeof(variableList_gasMeasurement[0]);
-// Create the 1-minute VariableArray object
-VariableArray array10cm;
+                                    new ProcessorStats_FreeRam(&mcuBoard)
+                                  };
+// Count up the number of pointers in the temperature array
+int variableCountTemp = sizeof(variableList_temp) /
+    sizeof(variableList_temp[0]);
+// Create the temperature VariableArray object
+VariableArray arrayTemp;
 
-// The variables to record at 5 minute intervals
-Variable* variableList_at20cm[] = {//new MaximDS3231_Temp(&ds3231),
-                                  // new ProcessorStats_Battery(&mcuBoard),
-                                  // new ProcessorStats_FreeRam(&mcuBoard)
+Variable* variableList_processorStats[] = {
+                                  new ProcessorStats_Battery(&mcuBoard),
+                                  new ProcessorStats_FreeRam(&mcuBoard)
                                   };
 // Count up the number of pointers in the 5-minute array
-int variableCount20cm = sizeof(variableList_at20cm) /
-    sizeof(variableList_at20cm[0]);
+int variableCountProcessorStats = sizeof(variableList_processorStats) /
+    sizeof(variableList_processorStats[0]);
 // Create the 5-minute VariableArray object
-VariableArray array20cm;
-
-Variable* variableList_at50cm[] = {new MaximDS3231_Temp(&ds3231)
-                                  // new ProcessorStats_Battery(&mcuBoard),
-                                  // new ProcessorStats_FreeRam(&mcuBoard)
-                                  };
-// Count up the number of pointers in the 5-minute array
-int variableCount50cm = sizeof(variableList_at50cm) /
-    sizeof(variableList_at50cm[0]);
-// Create the 5-minute VariableArray object
-VariableArray array50cm;
+VariableArray arrayProcessorStats;
 /** End [variable_arrays] */
 
 
@@ -235,15 +264,15 @@ VariableArray array50cm;
 //  The Logger Object[s]
 // ==========================================================================
 /** Start [loggers] */
-// Create the 1-minute  logger instance
+// Create the 10cm soil depth logger instance
 Logger logger10cm;
 
-// Create the 5-minute  logger instance
+// Create the 20cm soil depth logger instance
 Logger logger20cm;
-/** End [loggers] */
 
+// Create 50cm soil depth logger instance
 Logger logger50cm;
-
+/** End [loggers] */
 
 // ==========================================================================
 //  Working Functions
@@ -335,12 +364,12 @@ void setup() {
     Logger::setRTCTimeZone(0);
 
     // Begin the variable array[s], logger[s], and publisher[s]
-    array10cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
-    array20cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
-    array50cm.begin(variableCountGasMeasurement, variableList_gasMeasurement);
-    logger10cm.begin(LoggerID, 1, &array10cm);
-    logger20cm.begin(LoggerID, 1, &array20cm);
-    logger50cm.begin(LoggerID, 1, &array50cm);
+    arrayGasMeasurement.begin(variableCountGasMeasurement, variableList_gasMeasurement);
+    arrayTemp.begin(variableCountTemp, variableList_temp);
+    arrayProcessorStats.begin(variableCountProcessorStats, variableList_processorStats);
+    logger10cm.begin(LoggerID, 1, &arrayGasMeasurement);
+    logger20cm.begin(LoggerID, 1, &arrayGasMeasurement);
+    logger50cm.begin(LoggerID, 1, &arrayGasMeasurement);
     logger10cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
                              greenLED);
     logger20cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
@@ -353,9 +382,9 @@ void setup() {
     modem.setModemLED(modemLEDPin);
 
     // Set up the sensors (do this directly on the VariableArray)
-    array10cm.setupSensors();
-    array20cm.setupSensors();
-    array50cm.setupSensors();
+    arrayGasMeasurement.setupSensors();
+    arrayTemp.setupSensors();
+    arrayProcessorStats.setupSensors();
 
     // Print out the current time
     Serial.print(F("Current RTC time is: "));
@@ -426,27 +455,28 @@ void loop() {
         // Send power to all of the sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Powering sensors...\n"));
-        array10cm.sensorsPowerUp();
+        arrayGasMeasurement.sensorsPowerUp();
         logger10cm.watchDogTimer.resetWatchDog();
         // Wake up all of the sensors (do this directly on the VariableArray)
         Serial.print(F("Waking sensors...\n"));
-        array10cm.sensorsWake();
+        arrayGasMeasurement.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
+        // Retrieve gas sample from the first soil depth (10cm)
         collector.getSample(0);
        
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
-        array10cm.updateAllSensors();
+        arrayGasMeasurement.updateAllSensors();
         logger10cm.watchDogTimer.resetWatchDog();
         // Put sensors to sleep (do this directly on the VariableArray)
         Serial.print(F("Putting sensors back to sleep...\n"));
-        array10cm.sensorsSleep();
+        arrayGasMeasurement.sensorsSleep();
         logger10cm.watchDogTimer.resetWatchDog();
         // Cut sensor power (do this directly on the VariableArray)
         Serial.print(F("Cutting sensor power...\n"));
-        array10cm.sensorsPowerDown();
+        arrayGasMeasurement.sensorsPowerDown();
         logger10cm.watchDogTimer.resetWatchDog();
 
         // Stream the csv data to the SD card
@@ -472,26 +502,29 @@ void loop() {
         // Send power to all of the sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Powering sensors...\n"));
-        array20cm.sensorsPowerUp();
+        arrayTemp.sensorsPowerUp();
         logger10cm.watchDogTimer.resetWatchDog();
         // Wake up all of the sensors (do this directly on the VariableArray)
         Serial.print(F("Waking sensors...\n"));
-        array20cm.sensorsWake();
+        arrayTemp.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
+
+        // Retrieve gas sample from the second soil depth (20cm)
         collector.getSample(1);
+
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
-        array20cm.updateAllSensors();
+        arrayTemp.updateAllSensors();
         logger10cm.watchDogTimer.resetWatchDog();
         // Put sensors to sleep (do this directly on the VariableArray)
         Serial.print(F("Putting sensors back to sleep...\n"));
-        array20cm.sensorsSleep();
+        arrayTemp.sensorsSleep();
         logger10cm.watchDogTimer.resetWatchDog();
         // Cut sensor power (do this directly on the VariableArray)
         Serial.print(F("Cutting sensor power...\n"));
-        array20cm.sensorsPowerDown();
+        arrayTemp.sensorsPowerDown();
         logger10cm.watchDogTimer.resetWatchDog();
 
         // Stream the csv data to the SD card
@@ -519,26 +552,26 @@ void loop() {
         // Send power to all of the sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Powering sensors...\n"));
-        array50cm.sensorsPowerUp();
+        arrayProcessorStats.sensorsPowerUp();
         logger10cm.watchDogTimer.resetWatchDog();
         // Wake up all of the sensors (do this directly on the VariableArray)
         Serial.print(F("Waking sensors...\n"));
-        array50cm.sensorsWake();
+        arrayProcessorStats.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
         collector.getSample(2);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
-        array50cm.updateAllSensors();
+        arrayProcessorStats.updateAllSensors();
         logger10cm.watchDogTimer.resetWatchDog();
         // Put sensors to sleep (do this directly on the VariableArray)
         Serial.print(F("Putting sensors back to sleep...\n"));
-        array50cm.sensorsSleep();
+        arrayProcessorStats.sensorsSleep();
         logger10cm.watchDogTimer.resetWatchDog();
         // Cut sensor power (do this directly on the VariableArray)
         Serial.print(F("Cutting sensor power...\n"));
-        array50cm.sensorsPowerDown();
+        arrayProcessorStats.sensorsPowerDown();
         logger10cm.watchDogTimer.resetWatchDog();
 
         // Stream the csv data to the SD card
