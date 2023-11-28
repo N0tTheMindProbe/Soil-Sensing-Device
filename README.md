@@ -1,36 +1,9 @@
-# Soil-Sensing-Device Readme
+#Overview 
 
-Welcome to Twin Cities Engineering's project on soil health monitoring 
-through gas-based measurement! Soil health plays a critical role in
-agriculture and environmental sustainability. Measuring gases in soil pore 
-spaces is an effective way to monitor soil health, providing valuable 
-information about the soil's nutrient content and microorganism activity. 
-However, commercially available gas-based soil health measurement devices 
-are prohibitively expensive, limiting their accessibility to farmers and 
-soil scientists. To address this issue, our engineering project team is 
-developing a low-cost DIY soil gas sensing unit capable of 
-measuring oxygen, carbon dioxide, and methane concentrations at 
-four soil depths every hour. Our goal is to create a prototype 
-that is affordable, portable, and easy to use, 
-empowering more people to measure and monitor soil health.
+Welcome to Twin Cities Engineering’s soil gas sensing project. Here, you will find documentation for both the hardware and software components of our newly developed soil gas sensing device. 
 
-Our project is centered around a device that attaches to four soil 
-probes of varying lengths (0.25, 0.5, 0.75, and 1 meter) to extract 
-soil gases. These probes are placed in a 1-meter squared area of soil, 
-assuming that the soil gas concentrations will remain constant. 
-The device has four ports for tubes that connect from the probes 
-to the device, and each port connects to a solenoid valve inside the 
-device. These valves can be opened and closed by a Mayfly microcontroller, 
-allowing the device to be exposed to one probe at a time. 
-A sensor chamber houses four sensors, including 
-an Alphasense IRC-AT carbon dioxide sensor, Alphasense O2-A3 oxygen sensor,
-and TGS2611-E00 methane sensor, along with a bme280 temperature, pressure,
-and humidity sensor. The final component in the sensor chamber is a 
-heating element, which is designed to prevent condensation from forming 
-and potentially damaging the sensors. If the bme280 detects a dew point, 
-the heating element is activated.
+Soil health is a key part within the realm of agriculture and environmental sustainability. As such, understanding the composition of gases within soil void spaces is a powerful means to monitor soil health, offering crucial insights into nutrient content and microorganism activity. Unfortunately, existing commercial soil gas measurement devices are inhibitively expensive, limiting access for farmers and soil scientists alike. To bridge this gap, our team of student engineers is crafting an affordable DIY soil gas sensing device designed to measure carbon dioxide concentrations at three distinct soil depths every 2-3 hours. Our goal is to create a prototype that is not only economical but also portable and user-friendly, increasing accessibility to those wishing to measure and track soil health. 
 
-All work accomplished can be found in the Final Design Document and more
-discussion about the project. A poster has been developed for this project
-and is also uploaded in the repository. Lastly STL files for the sensor chamber
-and the program to control the device are included.
+Our prototype works by collecting gas samples from soil void spaces. This is accomplished with three soil probes of varying lengths (10cm, 20cm, and 50cm) positioned at each of the aforementioned depths. A pump and solenoid valves are used to collect gas samples sequentially from each depth, so they can be passed over a carbon dioxide sensor. A Mayfly microcontroller is used to control each of these functions and record the gas data collected from the sensor. This dynamic setup allows for precise monitoring and data collection, providing a cost-effective and efficient solution for soil health analysis. 
+
+The development of the programming for this device was made possible through the utilization of resources provided by EnviroDIY's ModularSensors repository. The extensive collection of tutorials, libraries, and code documentation available in the ModularSensor repository allowed our team to streamline the programming process and ensure consistent functionality of the soil gas sensing prototype.  
