@@ -1,8 +1,8 @@
 /** =========================================================================
- * @file double_logger.ino
- * @brief Example logging at two different timing intervals
+ * triple_logger.cpp
+ * Example logging gas readings from three soil depths along with temperature, humidity, and Mayfly stats
  *
- * @author Sara Geleskie Damiano <sdamiano@stroudcenter.org>
+ * Based on the double_logger example created by Sara Geleskie Damiano <sdamiano@stroudcenter.org> in EnviroDIY/ModularSensors
  * @copyright (c) 2017-2022 Stroud Water Research Center (SWRC)
  *                          and the EnviroDIY Development Team
  *            This example is published under the BSD-3 license.
@@ -54,6 +54,7 @@ const char* LoggerID = "";
 const char* FileName10cm = "Logger_10cmDepth.csv";
 const char* FileName20cm = "Logger_20cmDepth.csv";
 const char* FileName50cm = "Logger_50cmDepth.csv";
+const char* FileNameTempStats = "Logger_TempStats.csv";
 // Your logger's timezone.
 const int8_t timeZone = -6;  // Eastern Standard Time
 // NOTE:  Daylight savings time will not be applied!  Please use standard time!
@@ -117,7 +118,8 @@ DigiXBeeWifi modem = modemXBWF;
 #include <sensors/ProcessorStats.h>
 
 // Create the main processor chip "sensor" - for general metadata
-const char*    mcuBoardVersion = "v1.1";
+//const char*    mcuBoardVersion = "v1.1";
+const char* mcuBoardVersion = "v0.5b";
 ProcessorStats mcuBoard(mcuBoardVersion);
 /** End [processor_sensor] */
 
@@ -230,7 +232,7 @@ int variableCountGasMeasurement = sizeof(variableList_gasMeasurement) /
 VariableArray arrayGasMeasurement;
 
 // The variables to record temperature (and humidity and pressure) readings from the air
-Variable* variableList_temp[] = {
+Variable* variableList_tempStats[] = {
                                     new MaximDS18_Temp(&ds18),
                                     new MaximDS3231_Temp(&ds3231),
 
@@ -243,20 +245,11 @@ Variable* variableList_temp[] = {
                                     new ProcessorStats_FreeRam(&mcuBoard)
                                   };
 // Count up the number of pointers in the temperature array
-int variableCountTemp = sizeof(variableList_temp) /
-    sizeof(variableList_temp[0]);
+int variableCountTempStats = sizeof(variableList_tempStats) /
+    sizeof(variableList_tempStats[0]);
 // Create the temperature VariableArray object
-VariableArray arrayTemp;
+VariableArray arrayTempStats;
 
-Variable* variableList_processorStats[] = {
-                                  new ProcessorStats_Battery(&mcuBoard),
-                                  new ProcessorStats_FreeRam(&mcuBoard)
-                                  };
-// Count up the number of pointers in the 5-minute array
-int variableCountProcessorStats = sizeof(variableList_processorStats) /
-    sizeof(variableList_processorStats[0]);
-// Create the 5-minute VariableArray object
-VariableArray arrayProcessorStats;
 /** End [variable_arrays] */
 
 
@@ -272,6 +265,9 @@ Logger logger20cm;
 
 // Create 50cm soil depth logger instance
 Logger logger50cm;
+
+//Create Mayfly Stats/Temperature logger instance
+Logger loggerTempStats;
 /** End [loggers] */
 
 // ==========================================================================
@@ -291,21 +287,6 @@ void greenredflash(uint8_t numFlash = 4, uint8_t rate = 75) {
     digitalWrite(redLED, LOW);
 }
 
-
-/*
-void flushsystem(uint8_t pin_number){
-    digitalWrite(solenoid_pins[pin_number], HIGH);
-    delay(1000);
-    digitalWrite(pump_pin, HIGH);
-    delay(FLUSH_TIME);
-    digitalWrite(pump_pin, LOW);
-    delay(MEASUREMENT_TIME);
-    digitalWrite(solenoid_pins[pin_number], LOW);
-
-
-}
-*/
-/** End [working_functions] */
 
 
 // ==========================================================================
@@ -338,21 +319,6 @@ void setup() {
     pinMode(redLED, OUTPUT);
     digitalWrite(redLED, LOW);
 
-    /*
-     // Set OUTPUT Pins on Mayfly Microcontroller
-    pinMode(pump_pin, OUTPUT);
-
-    for(int pin = 0; pin < 3; pin++){
-        pinMode(solenoid_pins[pin], OUTPUT);
-    }
-
-    //LOW implies off for relay board
-    digitalWrite(pump_pin, LOW);
-    for(int pin = 0; pin < 3; pin++){
-        digitalWrite(solenoid_pins[pin], LOW);
-    }
-    */
-
     collector.begin();
     // Blink the LEDs to show the board is on and starting up
     greenredflash();
@@ -365,16 +331,19 @@ void setup() {
 
     // Begin the variable array[s], logger[s], and publisher[s]
     arrayGasMeasurement.begin(variableCountGasMeasurement, variableList_gasMeasurement);
-    arrayTemp.begin(variableCountTemp, variableList_temp);
-    arrayProcessorStats.begin(variableCountProcessorStats, variableList_processorStats);
+    arrayTempStats.begin(variableCountTempStats, variableList_tempStats);
     logger10cm.begin(LoggerID, 1, &arrayGasMeasurement);
     logger20cm.begin(LoggerID, 1, &arrayGasMeasurement);
     logger50cm.begin(LoggerID, 1, &arrayGasMeasurement);
+    loggerTempStats.begin(LoggerID, 1, &arrayTempStats);
+
     logger10cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
                              greenLED);
     logger20cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
                              greenLED);
     logger50cm.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
+                             greenLED);
+    loggerTempStats.setLoggerPins(wakePin, sdCardSSPin, sdCardPwrPin, buttonPin,
                              greenLED);
 
 
@@ -383,8 +352,8 @@ void setup() {
 
     // Set up the sensors (do this directly on the VariableArray)
     arrayGasMeasurement.setupSensors();
-    arrayTemp.setupSensors();
-    arrayProcessorStats.setupSensors();
+    arrayTempStats.setupSensors();
+  
 
     // Print out the current time
     Serial.print(F("Current RTC time is: "));
@@ -409,6 +378,7 @@ void setup() {
     logger10cm.setFileName(FileName10cm);
     logger20cm.setFileName(FileName20cm);
     logger50cm.setFileName(FileName50cm);
+    loggerTempStats.setFileName(FileNameTempStats);
 
     // Setup the logger files.  Specifying true will put a default header at
     // on to the file when it's created.
@@ -419,6 +389,7 @@ void setup() {
     logger10cm.createLogFile(true);  // true = write a new header
     logger20cm.createLogFile(true);  // true = write a new header
     logger50cm.createLogFile(true);  // true = write a new header
+    loggerTempStats.createLogFile(true); // true = write a new header
     logger10cm.turnOffSDcard(
         true);  // true = wait for internal housekeeping after write
 
@@ -502,11 +473,11 @@ void loop() {
         // Send power to all of the sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Powering sensors...\n"));
-        arrayTemp.sensorsPowerUp();
+        arrayGasMeasurement.sensorsPowerUp();
         logger10cm.watchDogTimer.resetWatchDog();
         // Wake up all of the sensors (do this directly on the VariableArray)
         Serial.print(F("Waking sensors...\n"));
-        arrayTemp.sensorsWake();
+        arrayGasMeasurement.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
 
@@ -516,15 +487,15 @@ void loop() {
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
-        arrayTemp.updateAllSensors();
+        arrayGasMeasurement.updateAllSensors();
         logger10cm.watchDogTimer.resetWatchDog();
         // Put sensors to sleep (do this directly on the VariableArray)
         Serial.print(F("Putting sensors back to sleep...\n"));
-        arrayTemp.sensorsSleep();
+        arrayGasMeasurement.sensorsSleep();
         logger10cm.watchDogTimer.resetWatchDog();
         // Cut sensor power (do this directly on the VariableArray)
         Serial.print(F("Cutting sensor power...\n"));
-        arrayTemp.sensorsPowerDown();
+        arrayGasMeasurement.sensorsPowerDown();
         logger10cm.watchDogTimer.resetWatchDog();
 
         // Stream the csv data to the SD card
@@ -552,26 +523,26 @@ void loop() {
         // Send power to all of the sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Powering sensors...\n"));
-        arrayProcessorStats.sensorsPowerUp();
+        arrayGasMeasurement.sensorsPowerUp();
         logger10cm.watchDogTimer.resetWatchDog();
         // Wake up all of the sensors (do this directly on the VariableArray)
         Serial.print(F("Waking sensors...\n"));
-        arrayProcessorStats.sensorsWake();
+        arrayGasMeasurement.sensorsWake();
         logger10cm.watchDogTimer.resetWatchDog();
 
         collector.getSample(2);
         // Update the values from all attached sensors (do this directly on the
         // VariableArray)
         Serial.print(F("Updating sensor values...\n"));
-        arrayProcessorStats.updateAllSensors();
+        arrayGasMeasurement.updateAllSensors();
         logger10cm.watchDogTimer.resetWatchDog();
         // Put sensors to sleep (do this directly on the VariableArray)
         Serial.print(F("Putting sensors back to sleep...\n"));
-        arrayProcessorStats.sensorsSleep();
+        arrayGasMeasurement.sensorsSleep();
         logger10cm.watchDogTimer.resetWatchDog();
         // Cut sensor power (do this directly on the VariableArray)
         Serial.print(F("Cutting sensor power...\n"));
-        arrayProcessorStats.sensorsPowerDown();
+        arrayGasMeasurement.sensorsPowerDown();
         logger10cm.watchDogTimer.resetWatchDog();
 
         // Stream the csv data to the SD card
@@ -585,6 +556,53 @@ void loop() {
         // Print a line to show reading ended
         Serial.println(F("--------------------<50>---------------------\n"));
     }
+
+    // Check if the already marked time is an even interval of the logging
+    // interval For logger[s] other than the first one, use the
+    // checkMarkedInterval() function.
+
+     if (loggerTempStats.checkMarkedInterval()) {
+        // Print a line to show new reading
+        Serial.println(F("--------------------->Temp_MayflyStats<---------------------"));
+        // Turn on the LED to show we're taking a reading
+        digitalWrite(redLED, HIGH);
+
+        // Send power to all of the sensors (do this directly on the
+        // VariableArray)
+        Serial.print(F("Powering sensors...\n"));
+        arrayTempStats.sensorsPowerUp();
+        logger10cm.watchDogTimer.resetWatchDog();
+        // Wake up all of the sensors (do this directly on the VariableArray)
+        Serial.print(F("Waking sensors...\n"));
+        arrayTempStats.sensorsWake();
+        logger10cm.watchDogTimer.resetWatchDog();
+
+        // Update the values from all attached sensors (do this directly on the
+        // VariableArray)
+        Serial.print(F("Updating sensor values...\n"));
+        arrayTempStats.updateAllSensors();
+        logger10cm.watchDogTimer.resetWatchDog();
+        // Put sensors to sleep (do this directly on the VariableArray)
+        Serial.print(F("Putting sensors back to sleep...\n"));
+        arrayTempStats.sensorsSleep();
+        logger10cm.watchDogTimer.resetWatchDog();
+        // Cut sensor power (do this directly on the VariableArray)
+        Serial.print(F("Cutting sensor power...\n"));
+        arrayTempStats.sensorsPowerDown();
+        logger10cm.watchDogTimer.resetWatchDog();
+
+        // Stream the csv data to the SD card
+        loggerTempStats.turnOnSDcard(true);
+        loggerTempStats.logToSD();
+        loggerTempStats.turnOffSDcard(true);
+        logger10cm.watchDogTimer.resetWatchDog();
+
+        // Turn off the LED
+        digitalWrite(redLED, LOW);
+        // Print a line to show reading ended
+        Serial.println(F("--------------------<Temp_MayflyStat>---------------------\n"));
+    }
+
     // Once a day, at noon, sync the clock
     if (Logger::markedLocalEpochTime % 86400 == 43200) {
         // Turn on the modem
