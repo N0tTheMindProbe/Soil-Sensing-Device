@@ -2,7 +2,7 @@
  * triple_logger.cpp
  * Example logging gas readings from three soil depths along with temperature, humidity, and Mayfly stats
  *
- * Based on the double_logger example created by Sara Geleskie Damiano <sdamiano@stroudcenter.org> in EnviroDIY/ModularSensors
+ * Heavily based on the double_logger example created by Sara Geleskie Damiano <sdamiano@stroudcenter.org> in EnviroDIY/ModularSensors
  * @copyright (c) 2017-2022 Stroud Water Research Center (SWRC)
  *                          and the EnviroDIY Development Team
  *            This example is published under the BSD-3 license.
@@ -75,9 +75,6 @@ const int8_t sensorPowerPin = 22;  // MCU pin controlling main sensor power
 /** End [logging_options] */
 
 
-
-
-
 // ==========================================================================
 //  Wifi/Cellular Modem Options
 // ==========================================================================
@@ -118,6 +115,7 @@ DigiXBeeWifi modem = modemXBWF;
 #include <sensors/ProcessorStats.h>
 
 // Create the main processor chip "sensor" - for general metadata
+//IMPORTANT!!! Make sure to set the correct Mafly board version, or nothing will work correctly
 //const char*    mcuBoardVersion = "v1.1";
 const char* mcuBoardVersion = "v0.5b";
 ProcessorStats mcuBoard(mcuBoardVersion);
@@ -177,7 +175,7 @@ BoschBME280 bme280(I2CPower, BMEi2c_addr);
 const int FLUSH_TIME = 10000;
 const int MEASUREMENT_TIME = 3000;
 
-// Setting Valve pin
+// Set Valve pin
 const int pump_pin = 7;
 
 // Mayfly pins connected to control respective solenoids relays.
@@ -209,11 +207,6 @@ Variable* alphasenseCO2CO2 = new AlphasenseCO2_CO2(
 Variable* alphasenseCO2voltage = new AlphasenseCO2_Voltage(
     &alphasenseCO2, "12345678-abcd-1234-ef00-1234567890ab");
 /** End [alphasense_co2] */
-
-
-
-
-
 
 
 // ==========================================================================
@@ -373,14 +366,14 @@ void setup() {
 
     // Give the loggers different file names
     // If we wanted to auto-generate the file name, that could also be done by
-    // not calling this function, but in that case if both "loggers" have the
+    // not calling this function, but in that case if all "loggers" have the
     // same logger id, they will end up with the same filename
     logger10cm.setFileName(FileName10cm);
     logger20cm.setFileName(FileName20cm);
     logger50cm.setFileName(FileName50cm);
     loggerTempStats.setFileName(FileNameTempStats);
 
-    // Setup the logger files.  Specifying true will put a default header at
+    // Setup the logger files.  Specifying true will put a default header
     // on to the file when it's created.
     // Because we've already called setFileName, we do not need to specify the
     // file name for this function.
