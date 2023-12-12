@@ -1,8 +1,8 @@
 /**
- * co2_sensor.cpp
+ * AlphasenseIRCA1_CO2.cpp
  */
 
-#include "co2_sensor.h"
+#include "AlphasenseIRCA1_CO2.h"
 
 
 //----------------------------------------------------------------------------
@@ -10,7 +10,7 @@
 //----------------------------------------------------------------------------
 
 // Sets up functions
-bool AlphasenseCO2::begin() {
+bool Alphasense_IRC_A1::begin() {
     Serial.println("Initializing Alphasense IRC-A1 CO2 sensor");
 
     // Set the gain for the ADC
@@ -19,7 +19,7 @@ bool AlphasenseCO2::begin() {
 
     // Check if the ADC is operational
     Serial.print("Checking ADC... ");
-    if (!ads.begin(ADS1115_ADDRESS)) {
+    if (!ads.begin()) {
         Serial.println("Failed to initialize ADS.");
         return false;
     }
@@ -30,18 +30,19 @@ bool AlphasenseCO2::begin() {
 
 
 // Function to convert digital value from sensor ADC to CO2 reading in ppm
-float AlphasenseCO2::getCO2PPM(void) {
+float Alphasense_IRC_A1::getCO2PPM(void) {
     // Measure the voltage difference across two pins from the CO2 sensor
-    int16_t results = ads.readADC_Differential_2_3();
+    int16_t counts = ads.readADC_Differential_2_3();
 
-    // Convert digital CO2 value to voltage (V)
-    float CO2Voltage = ads.computeVolts(results);
+    // Convert ADC counts value to voltage (V)
+    float CO2Voltage = ads.computeVolts(counts);
 
     // Convert voltage to current (mA) - assuming a 250 Ohm resistor is in series
     float CO2Current = (CO2Voltage / 250) * 1000;
 
     // Convert current to ppm (using a formula recommended by the sensor manufacturer)
     float CO2PPM = 312.5 * CO2Current - 1250;
+
 
     return CO2PPM;
 }

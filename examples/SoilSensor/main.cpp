@@ -12,10 +12,10 @@
 //#include <Adafruit_BME280.h>
 
 //Includes the library for the SD card
-#include <SD.h>
+#include <SdFat.h>
 
 //Includes the Library for the Real Time Clock
-#include <DS3231.h>
+#include <sodaq_DS3231.h>
 
 //Adds Definitions to the SD pin and File info for SD card
 #define SD_SS_PIN 12
@@ -24,7 +24,7 @@
 #define DATA_HEADER "Date,Time,Solenoid Number,CO2(PPM),CO2 Volt"
 
 //Creates Clock Variable for RTC
-DS3231 Clock;
+Sodaq_DS3231 Clock;
 
 //Sets RTC Parameters
 bool h24;
